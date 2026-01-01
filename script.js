@@ -1,5 +1,13 @@
 import * as THREE from 'three'
+import GUI from 'lil-gui'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+
+/**
+ * Base
+ */
+
+// Debug
+const gui = new GUI()
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
@@ -7,10 +15,31 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
+// Parameters
+const parameters = {}
+parameters.depth = 3
+parameters.size = 2
+parameters.color = 0x00ffff
+
+
+let geometry = null
+let material = null
+let fractalMesh = null
+
+
 /**
  * Fractal Generation
  */
-const createSierpinskiTetrahedron = (depth, size) => {
+const createSierpinskiTetrahedron = () => 
+{
+    // Destroy old Tetrahedron
+    if (fractalMesh !== null) {
+        console.log('wipe')
+        geometry.dispose()
+        material.dispose()
+        scene.remove(fractalMesh)
+    }
+
     const verticies = []
 
     // helper function to create one tetrahedron from 4 vertices
@@ -49,30 +78,32 @@ const createSierpinskiTetrahedron = (depth, size) => {
         new THREE.Vector3(-1, -1, 1),
         new THREE.Vector3(1, -1, -1),
         new THREE.Vector3(-1, 1, -1)
-    ].map(v => v.multiplyScalar(size / 2))
+    ].map(v => v.multiplyScalar(parameters.size / 2))
 
-    generateFractal(...initialVertices, depth)
+    generateFractal(...initialVertices, parameters.depth)
 
-    const geometry = new THREE.BufferGeometry()
+    geometry = new THREE.BufferGeometry()
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(verticies, 3))
     geometry.computeVertexNormals()
 
-    return geometry
+    // Material
+    material = new THREE.MeshStandardMaterial({ 
+        color: parameters.color,
+        metalness: 0.7,
+        roughness: 0.2
+    })
 
+    fractalMesh = new THREE.Mesh(geometry, material)
+    scene.add(fractalMesh)
 }
+createSierpinskiTetrahedron()
 
-// Create the fractal mesh
-const fractalGeometry = createSierpinskiTetrahedron(3, 4)
-const fractalMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x00ffff,
-    metalness: 0.7,
-    roughness: 0.2
-})
-const fractalMesh = new THREE.Mesh(fractalGeometry, fractalMaterial)
-scene.add(fractalMesh)
-
-
-
+/**
+ * Debug
+ */
+gui.add(parameters, 'depth').min(0).max(10).step(1).onFinishChange(createSierpinskiTetrahedron)
+gui.add(parameters, 'size').min(0).max(10).step(1).onFinishChange(createSierpinskiTetrahedron)
+gui.addColor(parameters, 'color').onFinishChange(createSierpinskiTetrahedron)
 
 /**
  * Lighting
